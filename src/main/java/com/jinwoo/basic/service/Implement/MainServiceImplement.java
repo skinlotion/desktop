@@ -3,15 +3,20 @@ package com.jinwoo.basic.service.Implement;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.jinwoo.basic.dto.request.PatchNicknameRequestDto;
 import com.jinwoo.basic.dto.request.PostUserRequestDto;
+import com.jinwoo.basic.dto.request.SingInRequestDto;
 import com.jinwoo.basic.dto.respose.DeleteUserResponseDto;
 import com.jinwoo.basic.dto.respose.PatchNicknameResponseDto;
 import com.jinwoo.basic.dto.respose.PostUserResponseDto;
 import com.jinwoo.basic.dto.respose.ResponseDto;
+import com.jinwoo.basic.dto.respose.SingInResponseDto;
 import com.jinwoo.basic.entity.UserEntity;
+import com.jinwoo.basic.provider.JwtProvider;
 import com.jinwoo.basic.repository.UserRepository;
 import com.jinwoo.basic.service.MainService;
 
@@ -24,6 +29,11 @@ import lombok.RequiredArgsConstructor;
 public class MainServiceImplement implements MainService{
 
     private final UserRepository userRepository;
+    private final JwtProvider jwtProvider;
+
+    // description : PasswordEncoder => 비밀번호를 안전하게 암호화 하고 검증하는 인터페이스    //
+    // description : BCryptPasswordEncoder => Bcrypt 해시 알고리즘을 사용하는 PasswordEncoder 구현 클래스    //
+    private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @Override
     public String getMethod() {
@@ -36,6 +46,15 @@ public class MainServiceImplement implements MainService{
        //   VALUES(dto.getEmail(),...
        
         try {
+            //description : 비밀번호 암호화 작업 //
+            //description : 1. dto로부터 평문의 비밀번호(암호화할 문자열)을 가져옴  //
+            String password = dto.getPassword();
+            //description : 2. PasswordEncoder의 인스턴스의 encode() 메서드로 평문을 암호화 //
+            String emcodedPassword = passwordEncoder.encode(password);
+            //description : 3. dto에 다시 주입  //
+            dto.setPassword(emcodedPassword);
+
+
             // description : Create 작업 순서(INSERT)    //
             // description : 1. Entity 인스턴스 생성    //
             UserEntity userEntity = new UserEntity(dto);
@@ -95,6 +114,38 @@ public class MainServiceImplement implements MainService{
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ResponseDto("DBE", "Database Error"));
         }
         return ResponseEntity.status(HttpStatus.OK).body(new DeleteUserResponseDto("SU", "SUCCESS" ));
+    }
+
+    @Override
+    public ResponseEntity<? super SingInResponseDto> singIn(SingInRequestDto dto) {
+        
+        SingInResponseDto resposeBody = null;
+        
+        try {
+            // description : 1. 이메일을 꺼내옴
+            String email = dto.getEmail();
+            // description : 2. dto로 받은 email을 이용하여 데이터베이스에서 조회   //
+            UserEntity userEntity = userRepository.findByEmail(email);  
+            // description : 3. email에 해당하는 레코드가 존재하는지 확인 -> 존재하지 않으면 반환 //
+            if (userEntity == null)
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ResponseDto("SF","Sing In Faild"));
+            // description : 4. userEntity에서 암호화 되어있는 password를 추출 //
+            String encodedPassword = userEntity.getPassword();
+            // description : 5. dto에서 평문의 password 추출 //
+            String password = dto.getPassword();
+            // description : 6. 암호화되어있는 password와 평문의 password를 비교 (matches() 매서드는 평문의 문자열과 암호화된 문자열을 비교) //
+            boolean isMatched = passwordEncoder.matches(password, encodedPassword);
+            if(!isMatched)
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ResponseDto("SF","Sing In Faild"));
+            // description : 7. 토큰 생성   //
+            String token = jwtProvider.create(email);
+            resposeBody = new SingInResponseDto("SU", "SUCCESS", token);
+            
+        } catch (Exception exception) {
+            exception.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ResponseDto("DBE", "Database Error"));
+        }
+        return ResponseEntity.status(HttpStatus.OK).body(resposeBody);
     }
     
 }

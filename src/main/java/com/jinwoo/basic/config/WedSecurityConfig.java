@@ -48,7 +48,7 @@ public class WedSecurityConfig {
             .authorizeRequests()
             // description : antMatchers() => 특정요청을 지정하는 것(어떤 요청에만 응답하겠다 이런 거) (URL 패턴에 따른 지정, http method에 따른 지정, http method + URL패턴에 따른 지정)
             // description : url 패턴에 따른 지정 (/user로 시작하는 모든 요청에 대해 허용하는 방법)
-            .antMatchers("/user/**").permitAll()
+            .antMatchers("/user/**", "/sign-in").permitAll()
             // description : http method에 따른 지정 (모든 get 요청에 대해 허용하도록 하는 방법)
             .antMatchers(HttpMethod.GET).permitAll()
             // description : http method + url 패턴에 따른 지정 (POST 이면서 /board 로 시작하는 모든 요청을 허용하도록 하는 방법)

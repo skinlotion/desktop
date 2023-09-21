@@ -4,6 +4,7 @@ import javax.validation.Valid;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -19,10 +20,12 @@ import org.springframework.web.bind.annotation.RestController;
 import com.jinwoo.basic.dto.request.PatchNicknameRequestDto;
 import com.jinwoo.basic.dto.request.PostRequestBodyDto;
 import com.jinwoo.basic.dto.request.PostUserRequestDto;
+import com.jinwoo.basic.dto.request.SingInRequestDto;
 import com.jinwoo.basic.dto.request.pathvalidationDto;
 import com.jinwoo.basic.dto.respose.DeleteUserResponseDto;
 import com.jinwoo.basic.dto.respose.PatchNicknameResponseDto;
 import com.jinwoo.basic.dto.respose.PostUserResponseDto;
+import com.jinwoo.basic.dto.respose.SingInResponseDto;
 import com.jinwoo.basic.dto.respose.TmpResposeDto;
 import com.jinwoo.basic.provider.JwtProvider;
 import com.jinwoo.basic.service.MainService;
@@ -194,6 +197,19 @@ public class MainController {
         ResponseEntity<String> response = ResponseEntity.status(HttpStatus.OK).body(subject);
         return response;
     }
+    @GetMapping("principle")
+    public ResponseEntity<String> getPrinciple(
+        // description : Spring Security context에 등록되어 있는 접근 주체를 가져오는 어노테이션    //
+        @AuthenticationPrincipal String subject
+    ) {
+        return ResponseEntity.status(HttpStatus.OK).body(subject);
+    }
     
-    
+    @PostMapping("sign-in")
+    public ResponseEntity<? super SingInResponseDto> signIn(
+        @RequestBody @Valid SingInRequestDto requestBody
+    ){
+        ResponseEntity<? super SingInResponseDto> response = mainService.singIn(requestBody);
+        return response;
+    }
 }
